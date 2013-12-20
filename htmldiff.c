@@ -620,7 +620,13 @@ static void split_file_into_words (SIDE *side)
 	side->position = 0;
 
 	strcpy(side->temp_name, "htmldiff2XXXXXX");
-	side->temp_file = fdopen(mkstemp(side->temp_name), "w");
+	int tmpfilefd = mkstemp(side->temp_name);
+
+	if (tmpfilefd < 0) {
+		errexit(EXIT_FAILURE, 0, _("Error while creating temporary file"));
+	}
+
+	side->temp_file = fdopen(tmpfilefd, "w");
 
 	if (side->temp_file == NULL)
 		errexit (EXIT_FAILURE, errno, "%s", side->temp_name);
