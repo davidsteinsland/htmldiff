@@ -290,15 +290,19 @@ initialize_strings (void)
   /* Ensure some default strings.  */
 
 	if (!overstrike) {
-		if (!term_delete_start && !user_delete_start)
+		if (!term_delete_start && !user_delete_start) {
 			user_delete_start = "<s><del>";
-		if (!term_delete_end && !user_delete_end)
+		}
+		if (!term_delete_end && !user_delete_end) {
 			user_delete_end = "</del></s>";
-		if (!term_insert_start && !user_insert_start)
+		}
+		if (!term_insert_start && !user_insert_start) {
 			user_insert_start = "<u><ins>";
-		if (!term_insert_end && !user_insert_end)
+		}
+		if (!term_insert_end && !user_insert_end) {
 			user_insert_end = "</ins></u>";
     }
+  }
 }
 
 
@@ -326,16 +330,19 @@ static void
 start_of_delete (void)
 {
 	/* Avoid any emphasis if it would be useless.  */
-	if (inhibit_common && (inhibit_right || inhibit_left))
+	if (inhibit_common && (inhibit_right || inhibit_left)) {
 		return;
+	}
 
 	copy_mode = COPY_DELETED;
 #if HAVE_TPUTS
-	if (term_delete_start)
+	if (term_delete_start) {
 		tputs (term_delete_start, 0, putc_for_tputs);
+	}
 #endif
-	if (user_delete_start)
+	if (user_delete_start) {
 		fprintf (output_file, "%s", user_delete_start);
+	}
 }
 
 /*-------------------------.
@@ -347,14 +354,17 @@ end_of_delete (void)
 {
 	/* Avoid any emphasis if it would be useless.  */
 
-	if (inhibit_common && (inhibit_right || inhibit_left))
+	if (inhibit_common && (inhibit_right || inhibit_left)) {
 		return;
+	}
 
-	if (user_delete_end)
+	if (user_delete_end) {
 		fprintf (output_file, "%s", user_delete_end);
+	}
 #if HAVE_TPUTS
-	if (term_delete_end)
+	if (term_delete_end) {
 		tputs (term_delete_end, 0, putc_for_tputs);
+	}
 #endif
 	copy_mode = COPY_NORMAL;
 }
@@ -368,16 +378,19 @@ start_of_insert (void)
 {
 	/* Avoid any emphasis if it would be useless.  */
 
-	if (inhibit_common && (inhibit_right || inhibit_left))
+	if (inhibit_common && (inhibit_right || inhibit_left)) {
 		return;
+	}
 
 	copy_mode = COPY_INSERTED;
 #if HAVE_TPUTS
-	if (term_insert_start)
+	if (term_insert_start) {
 		tputs (term_insert_start, 0, putc_for_tputs);
+	}
 #endif
-	if (user_insert_start)
+	if (user_insert_start) {
 		fprintf (output_file, "%s", user_insert_start);
+	}
 }
 
 /*-------------------------.
@@ -389,14 +402,17 @@ end_of_insert (void)
 {
 	/* Avoid any emphasis if it would be useless.  */
 
-	if (inhibit_common && (inhibit_right || inhibit_left))
+	if (inhibit_common && (inhibit_right || inhibit_left)) {
 		return;
+	}
 
-	if (user_insert_end)
+	if (user_insert_end) {
 		fprintf (output_file, "%s", user_insert_end);
+	}
 #if HAVE_TPUTS
-	if (term_insert_end)
+	if (term_insert_end) {
 		tputs (term_insert_end, 0, putc_for_tputs);
+	}
 #endif
 	copy_mode = COPY_NORMAL;
 }
@@ -408,8 +424,9 @@ end_of_insert (void)
 static void
 skip_whitespace (SIDE *side)
 {
-	if (interrupted)
+	if (interrupted) {
 		longjmp (signal_label, 1);
+	}
 
 	while (isspace(side->character) || side->character == '<') {
 		if (side->character == '<') {
@@ -426,12 +443,13 @@ skip_whitespace (SIDE *side)
 
 static void skip_word (SIDE *side)
 {
-	if (interrupted)
+	if (interrupted) {
 		longjmp (signal_label, 1);
+	}
 
-	while (side->character != EOF && !isspace (side->character)
-		&& side->character != '<')
+	while (side->character != EOF && !isspace (side->character) && side->character != '<') {
 		side->character = getc (side->file);
+	}
   side->position++;
 }
 
@@ -540,12 +558,11 @@ static void copy_word (SIDE *side, FILE *file)
 	if (interrupted)
 		longjmp (signal_label, 1);
 
-	while (side->character != EOF && !isspace (side->character)
-		&& side->character != '<') {
+	while (side->character != EOF && !isspace (side->character) && side->character != '<') {
 		/* In printer mode, act according to copy_mode.  If copy_mode is not
 		COPY_NORMAL, we know that file is necessarily output_file.  */
 
-		if (overstrike)
+		if (overstrike) {
 			switch (copy_mode) {
 				case COPY_NORMAL:
 					if (side->character != EOF) putc (side->character, file);
@@ -570,7 +587,7 @@ static void copy_word (SIDE *side, FILE *file)
 					putc (side->character, output_file);
 				break;
 			}
-		else {
+		} else {
 			if (side->character != EOF)
 				putc (side->character, file);
 		}
@@ -650,18 +667,21 @@ static void split_file_into_words (SIDE *side)
 
 	side->temp_file = fdopen(tmpfilefd, "w");
 
-	if (side->temp_file == NULL)
+	if (side->temp_file == NULL) {
 		errexit (EXIT_FAILURE, errno, "%s", side->temp_name);
+	}
 
 	/* Complete splitting input file into words on output.  */
 
 	while (side->character != EOF) {
-		if (interrupted)
+		if (interrupted) {
 			longjmp (signal_label, 1);
+		}
 
 		skip_whitespace (side);
-		if (side->character == EOF)
+		if (side->character == EOF) {
 			break;
+		}
 
 		copy_word (side, side->temp_file);
 		putc ('\n', side->temp_file);
@@ -697,8 +717,9 @@ static int decode_directive_line (void)
 				value = 10 * value + character - '0';
 				character = getc (input_file);
 			}
-		} else if (state != 1 && state != 3)
+		} else if (state != 1 && state != 3) {
 			error = 1;
+		}
 
 		/* Assign the proper value.  */
 		argument[state] = value;
@@ -708,21 +729,24 @@ static int decode_directive_line (void)
 		switch (state) {
 			case 0:
 			case 2:
-				if (character == ',')
+				if (character == ',') {
 					character = getc (input_file);
+				}
 				break;
 
 				case 1:
 				if (character == 'a' || character == 'd' || character == 'c') {
 					directive = character;
 					character = getc (input_file);
-				} else
+				} else {
 					error = 1;
+				}
 			break;
 
 			case 3:
-				if (character != '\n')
+				if (character != '\n') {
 					error = 1;
+				}
 			break;
 		}
 
@@ -730,11 +754,13 @@ static int decode_directive_line (void)
 	}
 
 	/* Complete reading of the line and return success value.  */
-	while (character != EOF && character != '\n')
+	while (character != EOF && character != '\n') {
 		character = getc (input_file);
+	}
 
-	if (character == '\n')
+	if (character == '\n') {
 		character = getc (input_file);
+	}
 
 	return !error;
 }
@@ -758,9 +784,9 @@ static void skip_until_ordinal (SIDE *side, int ordinal)
 static void copy_until_ordinal (SIDE *side, int ordinal, int mark_as)
 {
 	while (side->position < ordinal) {
-		if (mark_as != 'd')
+		if (mark_as != 'd') {
 			copy_whitespace (side, output_file);
-		else {
+		} else {
 			skip_whitespace(side);
 			putc(' ', output_file);
 		}
@@ -806,21 +832,25 @@ static void reformat_diff_output (void)
 
 	/* Process diff output.  */
 	while (1) {
-		if (interrupted)
+		if (interrupted) {
 			longjmp (signal_label, 1);
+		}
 
 		/* Skip any line irrelevant to this program.  */
 		while (character != EOF && !isdigit (character)) {
-			while (character != EOF && character != '\n')
+			while (character != EOF && character != '\n') {
 				character = getc (input_file);
+			}
 
-			if (character == '\n')
+			if (character == '\n') {
 				character = getc (input_file);
+			}
 		}
 
 		/* Get out the loop if end of file.  */
-		if (character == EOF)
+		if (character == EOF) {
 			break;
+		}
 
 		/* Read, decode and process one directive line.  */
 		if (decode_directive_line ()) {
@@ -855,27 +885,34 @@ static void reformat_diff_output (void)
 					abort ();
 			}
 
-			if (!inhibit_left)
-				if (!inhibit_common && inhibit_right)
+			if (!inhibit_left) {
+				if (!inhibit_common && inhibit_right) {
 					copy_until_ordinal (left_side, resync_left, ' ');
-				else
+				} else {
 					skip_until_ordinal (left_side, resync_left);
+				}
+			}
 
-			if (!inhibit_right)
-				if (inhibit_common)
+			if (!inhibit_right) {
+				if (inhibit_common) {
 					skip_until_ordinal (right_side, resync_right);
-				else
+				} else {
 					copy_until_ordinal (right_side, resync_right, ' ');
+				}
+			}
 
-			if (!inhibit_common && inhibit_left && inhibit_right)
+			if (!inhibit_common && inhibit_left && inhibit_right) {
 				copy_until_ordinal (right_side, resync_right, ' ');
+			}
 
 			/* Use separator lines to disambiguate the output.  */
 			if (inhibit_left && inhibit_right) {
-				if (!inhibit_common)
+				if (!inhibit_common) {
 					fprintf (output_file, "\n%s\n", SEPARATOR_LINE);
-			} else if (inhibit_common)
+				}
+			} else if (inhibit_common) {
 				fprintf (output_file, "\n%s\n", SEPARATOR_LINE);
+			}
 
 			if ((!inhibit_left || !inhibit_right) && !inhibit_common) {
 				copy_whitespace (right_side, output_file);
@@ -894,10 +931,11 @@ static void reformat_diff_output (void)
 			/* Show any inserted code, or ensure skipping over it in case the
 				right file is used merely to show common words.  */
 
-			if (directive == 'a' || directive == 'c')
+			if (directive == 'a' || directive == 'c') {
 				if (inhibit_right) {
-					if (!inhibit_common && inhibit_left)
+					if (!inhibit_common && inhibit_left) {
 						skip_until_ordinal (right_side, argument[3]);
+					}
 				} else {
 					/* copy_whitespace (right_side, output_file);
 					start_of_insert ();
@@ -905,6 +943,7 @@ static void reformat_diff_output (void)
 					end_of_insert (); */
 					copy_until_ordinal (right_side, argument[3], 'i');
 				}
+			}
 		}
 	}
 
@@ -912,8 +951,9 @@ static void reformat_diff_output (void)
 		only the common code and deleted words.  */
 
 	if (inhibit_common) {
-		if (!inhibit_left || !inhibit_right)
+		if (!inhibit_left || !inhibit_right) {
 			fprintf (output_file, "\n%s\n", SEPARATOR_LINE);
+		}
 	} else if (!inhibit_left && inhibit_right) {
 		copy_until_ordinal (left_side, count_total_left, ' ');
 		copy_whitespace (left_side, output_file);
@@ -937,13 +977,15 @@ static void launch_input_program (void)
 {
 	/* Launch the diff program.  */
 
-	if (ignore_case)
+	if (ignore_case) {
 		input_file = readpipe (DIFF_PROGRAM, "-i", left_side->temp_name, right_side->temp_name, NULL);
-	else
+	} else {
 		input_file = readpipe (DIFF_PROGRAM, left_side->temp_name, right_side->temp_name, NULL);
+	}
 
-	if (!input_file)
+	if (!input_file) {
 		errexit (EXIT_FAILURE, errno, "%s", DIFF_PROGRAM);
+	}
 
 	character = getc (input_file);
 }
@@ -1004,13 +1046,15 @@ static void launch_output_program (void)
 
 		is_less = strstr (basename, "less") != NULL;
 
-		if (is_less && no_init_term)
+		if (is_less && no_init_term) {
 			output_file = writepipe (program, "-X", NULL);
-		else
+		} else {
 			output_file = writepipe (program, NULL);
+		}
 
-		if (!output_file)
+		if (!output_file) {
 			errexit (EXIT_FAILURE, errno, "%s", program);
+		}
 
 		/* If we are paging to less, use printer mode, not display mode.  */
 		if (is_less) {
@@ -1321,26 +1365,30 @@ Written by Franc,ois Pinard <pinard@iro.umontreal.ca>.\n"),
 		while stdout is directed to a terminal.  This decision might be
 		reversed later, if the pager happens to be "less".  */
 
-	if (find_termcap < 0)
+	if (find_termcap < 0) {
 		find_termcap = autopager && isatty (fileno (stdout));
+	}
 
 	/* Setup file names and signals, then do it all.  */
-	if (strcmp (argv[optind], "") == 0 || strcmp (argv[optind], "-") == 0)
+	if (strcmp (argv[optind], "") == 0 || strcmp (argv[optind], "-") == 0) {
 		left_side->filename = NULL;
-	else
+	} else {
 		left_side->filename = argv[optind];
+	}
 	optind++;
 	*left_side->temp_name = '\0';
 
-	if (strcmp (argv[optind], "") == 0 || strcmp (argv[optind], "-") == 0)
+	if (strcmp (argv[optind], "") == 0 || strcmp (argv[optind], "-") == 0) {
 		right_side->filename = NULL;
-	else
+	} else {
 		right_side->filename = argv[optind];
+	}
 	optind++;
 	*right_side->temp_name = '\0';
 
-	if (left_side->filename == NULL && right_side->filename == NULL)
+	if (left_side->filename == NULL && right_side->filename == NULL) {
 		errexit (EXIT_FAILURE, 0, _("Only one file may be standard input."));
+	}
 
 	setup_signals ();
 	input_file = NULL;
@@ -1362,22 +1410,28 @@ Written by Franc,ois Pinard <pinard@iro.umontreal.ca>.\n"),
 	/* Clean up.  Beware that input_file and output_file might not exist, if a
 		signal occurred early in the program.  */
 
-	if (input_file)
+	if (input_file) {
 		complete_input_program ();
+	}
 
-	if (*left_side->temp_name)
+	if (*left_side->temp_name) {
 		unlink (left_side->temp_name);
-	if (*right_side->temp_name)
+	}
+	if (*right_side->temp_name) {
 		unlink (right_side->temp_name);
+	}
 
-	if (output_file)
+	if (output_file) {
 		complete_output_program ();
+	}
 
-	if (interrupted)
+	if (interrupted) {
 		exit (EXIT_FAILURE);
+	}
 
-	if (show_statistics)
+	if (show_statistics) {
 		print_statistics ();
+	}
 
 #if 0
 	if (count_isolated_left || count_isolated_right || count_changed_left || count_changed_right)
