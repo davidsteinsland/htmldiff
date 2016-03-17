@@ -122,6 +122,7 @@ struct option const longopts[] =
 	{"statistics"  , 0, NULL, 's'},
 	{"terminal"    , 0, NULL, 't'},
 	{"version"     , 0, NULL, 'V'},
+	{"tmp-path"    , 1, NULL, 'P'},
 	{NULL          , 0, NULL, 0}
 };
 
@@ -140,6 +141,8 @@ const char *user_delete_start;	/* user specified string for start of delete */
 const char *user_delete_end;	/* user specified string for end of delete */
 const char *user_insert_start;	/* user specified string for start of insert */
 const char *user_insert_end;	/* user specified string for end of insert */
+
+const char* tmp_path = "/tmp";
 
 int find_termcap;		/* initialize the termcap strings */
 int no_init_term;		/* do not send init/term termcap strings */
@@ -203,8 +206,11 @@ int count_changed_right;	/* count of changed words in right file */
 
 static void errexit(int status, int errnum, const char *format, ...)
 {
-	va_list ap;
-	vfprintf(stderr, format, ap);
+	if (format) {
+		va_list ap;
+		vfprintf(stderr, format, ap);
+	}
+
 	if (errnum) fprintf(stderr, ": %s\n", strerror(errnum));
 	if (status) exit(status);
 }
@@ -584,6 +590,14 @@ static void split_file_into_words (SIDE *side)
 {
 	struct stat stat_buffer;	/* for checking if file is directory */
 
+	if (stat (tmp_path, &stat_buffer) != 0) {
+		fprintf(stderr, "Could not open path %s", tmp_path);
+		errexit (EXIT_FAILURE, errno, NULL);
+	}
+	if ((stat_buffer.st_mode & S_IFMT) != S_IFDIR) {
+		errexit (EXIT_FAILURE, 0, "Temporary path must be a directory.\n");
+	}
+
 	/* Open files.  */
 
 	if (side->filename == NULL) {
@@ -592,7 +606,7 @@ static void split_file_into_words (SIDE *side)
 		this temporary local file.  Once done, prepare it for reading.
 		We do not need the file name itself anymore.  */
 
-		strcpy(side->temp_name, "htmldiff1XXXXXX");
+		sprintf(side->temp_name, "%s/htmldiff1XXXXXX", tmp_path);
 		side->file = fdopen(mkstemp(side->temp_name), "w+");
 
 		if (side->file == NULL)
@@ -607,19 +621,27 @@ static void split_file_into_words (SIDE *side)
 		/* Check and diagnose if the file name is a directory.  Or else,
 		prepare the file for reading.  */
 
-		if (stat (side->filename, &stat_buffer) != 0)
+		if (access(side->filename, F_OK | R_OK) == -1) {
+			fprintf(stderr, "Input file %s does not exist or we dont have read permissions", side->filename);
+			errexit(EXIT_FAILURE, errno, NULL);
+		}
+
+		if (stat (side->filename, &stat_buffer) != 0) {
 			errexit (EXIT_FAILURE, errno, "%s", side->filename);
-		if ((stat_buffer.st_mode & S_IFMT) == S_IFDIR)
+		}
+		if ((stat_buffer.st_mode & S_IFMT) == S_IFDIR) {
 			errexit (EXIT_FAILURE, 0, _("Directories not supported"));
+		}
 		side->file = fopen (side->filename, "r");
-		if (side->file == NULL)
+		if (side->file == NULL) {
 			errexit (EXIT_FAILURE, errno, "%s", side->filename);
-    }
+		}
+	}
 
 	side->character = getc (side->file);
 	side->position = 0;
 
-	strcpy(side->temp_name, "htmldiff2XXXXXX");
+	sprintf(side->temp_name, "%s/htmldiff2XXXXXX", tmp_path);
 	int tmpfilefd = mkstemp(side->temp_name);
 
 	if (tmpfilefd < 0) {
@@ -1137,7 +1159,8 @@ Mandatory arguments to long options are mandatory for short options too.\n\
   -w, --start-delete=STRING  string to mark beginning of delete region\n\
   -x, --end-delete=STRING    string to mark end of delete region\n\
   -y, --start-insert=STRING  string to mark beginning of insert region\n\
-  -z, --end-insert=STRING    string to mark end of insert region\n"));
+  -z, --end-insert=STRING    string to mark end of insert region\n\
+      --tmp-path=STRING      temporary path\n"));
 		fputs (_("\
 \n\
 Report bugs to <wdiff-bugs@iro.umontreal.ca>.\n"),
@@ -1188,8 +1211,12 @@ int main (int argc, char *const argv[])
 	count_changed_left = 0;
 	count_changed_right = 0;
 
-	while (option_char = getopt_long (argc, argv, "123CKVahilnpstw:x:y:z:", longopts, NULL), option_char != EOF)
+	int option_index = 0;
+	while (option_char = getopt_long (argc, argv, "123CKVahilnpstw:x:y:z:", longopts, &option_index), option_char != EOF)
 		switch (option_char) {
+			case 'P':
+				tmp_path = optarg;
+				break;
 			case '1':
 				inhibit_left = 1;
 			break;
@@ -1286,7 +1313,7 @@ Written by Franc,ois Pinard <pinard@iro.umontreal.ca>.\n"),
 		}
 
 	if (optind + 2 != argc) {
-		errexit (0, 0, _("Missing file arguments"));
+		errexit (0, 0, _("Missing file arguments\n"));
 		usage (EXIT_FAILURE);
 	}
 
