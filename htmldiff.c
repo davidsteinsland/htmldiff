@@ -164,11 +164,7 @@ copy_mode;
 jmp_buf signal_label;		/* where to jump when signal received */
 int interrupted;		/* set when some signal has been received */
 
-/* Guarantee some value for L_tmpnam.  */
-#ifndef L_tmpnam
-# include "pathmax.h"
-# define L_tmpnam PATH_MAX
-#endif
+#define TMP_PATH_MAX_LEN 64
 
 typedef struct side SIDE;	/* all variables for one side */
 struct side
@@ -177,7 +173,7 @@ struct side
 	FILE *file;			/* original input file */
 	int position;			/* number of words read so far */
 	int character;		/* one character look ahead */
-	char temp_name[L_tmpnam];	/* temporary file name */
+	char temp_name[TMP_PATH_MAX_LEN];	/* temporary file name */
 	FILE *temp_file;		/* temporary file */
 };
 SIDE side_array[2];		/* area for holding side descriptions */
@@ -617,11 +613,21 @@ static void split_file_into_words (SIDE *side)
 
 	/* Open files.  */
 
+	size_t tmplen;
+
 	if (side->filename == NULL) {
 		/* Select a file name, use it for opening a temporary file and
 		unlink it right away.  Then, copy the whole standard input on
 		this temporary local file.  Once done, prepare it for reading.
 		We do not need the file name itself anymore.  */
+
+		/* check if we have room for <tmp_path + template + null byte> */
+		tmplen = strlen(tmp_path) + strlen("/htmldiff1XXXXXX") + 1;
+
+		if (tmplen > TMP_PATH_MAX_LEN) {
+			fprintf(stderr, "Maximum length of temporary path is %d; tried to allocate %zu bytes\n", TMP_PATH_MAX_LEN, tmplen);
+			errexit(EXIT_FAILURE, 0, NULL);
+		}
 
 		sprintf(side->temp_name, "%s/htmldiff1XXXXXX", tmp_path);
 		side->file = fdopen(mkstemp(side->temp_name), "w+");
@@ -657,6 +663,14 @@ static void split_file_into_words (SIDE *side)
 
 	side->character = getc (side->file);
 	side->position = 0;
+
+	/* check if we have room for <tmp_path + template + null byte> */
+	tmplen = strlen(tmp_path) + strlen("/htmldiff2XXXXXX") + 1;
+
+	if (tmplen > TMP_PATH_MAX_LEN) {
+		fprintf(stderr, "Maximum length of temporary path is %d; tried to allocate %zu bytes\n", TMP_PATH_MAX_LEN, tmplen);
+		errexit(EXIT_FAILURE, 0, NULL);
+	}
 
 	sprintf(side->temp_name, "%s/htmldiff2XXXXXX", tmp_path);
 	int tmpfilefd = mkstemp(side->temp_name);
