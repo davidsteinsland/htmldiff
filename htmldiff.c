@@ -1270,7 +1270,7 @@ int main (int argc, char *const argv[])
 	count_changed_right = 0;
 
 	int option_index = 0;
-	while (option_char = getopt_long (argc, argv, "123CKVahilnpstw:x:y:z:", longopts, &option_index), option_char != EOF)
+	while (option_char = getopt_long (argc, argv, "123CKVP:ahilnpstw:x:y:z:", longopts, &option_index), option_char != EOF)
 		switch (option_char) {
 			case 'P':
 				tmp_path = optarg;
